@@ -166,8 +166,8 @@ else
         --region="$REGION" \
         --num-nodes=2 \
         --machine-type=e2-medium \
-        --enable-cloud-logging \
-        --enable-cloud-monitoring \
+        --logging=SYSTEM,WORKLOAD \
+        --monitoring=SYSTEM \
         --enable-autoscaling \
         --min-nodes=1 \
         --max-nodes=4 \

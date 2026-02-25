@@ -106,7 +106,7 @@ export GKE_CLUSTER="Cloud-aittt2026"
 # 2. Create cluster
 gcloud container clusters create $GKE_CLUSTER \
   --region=$GCP_REGION --num-nodes=2 --machine-type=e2-medium \
-  --enable-cloud-logging --enable-cloud-monitoring \
+  --logging=SYSTEM,WORKLOAD --monitoring=SYSTEM \
   --enable-autoscaling --min-nodes=1 --max-nodes=4
 
 gcloud container clusters get-credentials $GKE_CLUSTER --region=$GCP_REGION
