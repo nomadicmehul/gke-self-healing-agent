@@ -74,7 +74,7 @@ class GCPMonitor:
                 logger.warning(f"Could not initialize monitoring client: {e}")
         return self._monitoring_client
 
-    def check_pod_health(self, namespace="Cloud-aittt2026"):
+    def check_pod_health(self, namespace="cloud-aittt2026"):
         """Check health of all pods in a namespace. Returns list of issues."""
         issues = []
 
@@ -164,7 +164,7 @@ class GCPMonitor:
             return parts[0]
         return pod_name
 
-    def get_resource_metrics(self, namespace="Cloud-aittt2026"):
+    def get_resource_metrics(self, namespace="cloud-aittt2026"):
         """Get resource utilization metrics from Cloud Monitoring."""
         metrics = {}
         monitoring_client = self._get_monitoring_client()
@@ -206,7 +206,7 @@ class GCPMonitor:
 
         return metrics
 
-    def get_pod_logs(self, pod_name, namespace="Cloud-aittt2026", lines=50):
+    def get_pod_logs(self, pod_name, namespace="cloud-aittt2026", lines=50):
         """Fetch recent pod logs."""
         try:
             logs = self.k8s_core.read_namespaced_pod_log(

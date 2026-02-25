@@ -95,8 +95,17 @@ print_success "pip3 found"
 # ============================================================================
 print_step "1" "Configuration"
 
+# Try to get current project from gcloud
+CURRENT_PROJECT=$(gcloud config get-value project 2>/dev/null)
+
 # Prompt for configuration
-read -p "Enter your GCP Project ID: " PROJECT_ID
+if [ -n "$CURRENT_PROJECT" ]; then
+    read -p "Enter your GCP Project ID (default: $CURRENT_PROJECT): " PROJECT_ID
+    PROJECT_ID=${PROJECT_ID:-$CURRENT_PROJECT}
+else
+    read -p "Enter your GCP Project ID: " PROJECT_ID
+fi
+
 if [ -z "$PROJECT_ID" ]; then
     print_error "Project ID cannot be empty"
     exit 1
@@ -105,8 +114,8 @@ fi
 read -p "Enter GCP Region (default: us-central1): " REGION
 REGION=${REGION:-us-central1}
 
-read -p "Enter GKE Cluster Name (default: Cloud-aittt2026): " CLUSTER_NAME
-CLUSTER_NAME=${CLUSTER_NAME:-Cloud-aittt2026}
+read -p "Enter GKE Cluster Name (default: cloud-aittt2026): " CLUSTER_NAME
+CLUSTER_NAME=${CLUSTER_NAME:-cloud-aittt2026}
 
 echo ""
 print_info "Configuration:"
@@ -260,7 +269,7 @@ if [ -f "demo-app.yaml" ]; then
     sleep 30
     
     print_info "Checking pod status..."
-    kubectl get pods -n Cloud-aittt2026
+    kubectl get pods -n cloud-aittt2026
 else
     print_warning "demo-app.yaml not found in current directory"
     print_info "Please ensure demo-app.yaml is in the project directory"

@@ -101,7 +101,7 @@ open http://localhost:8080
 # 1. Set your GCP project
 export GCP_PROJECT="your-project-id"
 export GCP_REGION="us-central1"
-export GKE_CLUSTER="Cloud-aittt2026"
+export GKE_CLUSTER="cloud-aittt2026"
 
 # 2. Create cluster
 gcloud container clusters create $GKE_CLUSTER \

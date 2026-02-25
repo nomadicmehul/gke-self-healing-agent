@@ -25,11 +25,21 @@ if [ -f "$SCRIPT_DIR/.env" ]; then
     source "$SCRIPT_DIR/.env"
 else
     print_warning "No .env file found — using defaults / prompting"
-    read -p "Enter your GCP Project ID: " PROJECT_ID
+    
+    # Try to get current project from gcloud
+    CURRENT_PROJECT=$(gcloud config get-value project 2>/dev/null)
+    
+    if [ -n "$CURRENT_PROJECT" ]; then
+        read -p "Enter your GCP Project ID (default: $CURRENT_PROJECT): " PROJECT_ID
+        PROJECT_ID=${PROJECT_ID:-$CURRENT_PROJECT}
+    else
+        read -p "Enter your GCP Project ID: " PROJECT_ID
+    fi
+    
     read -p "Enter GCP Region (default: us-central1): " REGION
     REGION=${REGION:-us-central1}
-    read -p "Enter GKE Cluster Name (default: Cloud-aittt2026): " CLUSTER_NAME
-    CLUSTER_NAME=${CLUSTER_NAME:-Cloud-aittt2026}
+    read -p "Enter GKE Cluster Name (default: cloud-aittt2026): " CLUSTER_NAME
+    CLUSTER_NAME=${CLUSTER_NAME:-cloud-aittt2026}
     SA_EMAIL="antigravity-agent@${PROJECT_ID}.iam.gserviceaccount.com"
     KEY_FILE="$HOME/antigravity-sa-key.json"
 fi
@@ -61,7 +71,7 @@ kubectl delete namespace self-healing-agent --ignore-not-found=true 2>/dev/null 
 
 # ── Step 3: Delete demo applications ────────────────────────────────────────
 print_info "Step 3: Deleting demo applications..."
-kubectl delete namespace Cloud-aittt2026 --ignore-not-found=true 2>/dev/null || true
+kubectl delete namespace cloud-aittt2026 --ignore-not-found=true 2>/dev/null || true
 kubectl delete job memory-stress --ignore-not-found=true 2>/dev/null || true
 
 # ── Step 4: Delete GKE cluster ──────────────────────────────────────────────

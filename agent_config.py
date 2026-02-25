@@ -4,6 +4,7 @@ Supports environment variables for all settings
 """
 
 import os
+import subprocess
 
 
 def _get_env(key, default=None, cast_type=str):
@@ -15,6 +16,21 @@ def _get_env(key, default=None, cast_type=str):
         return str(value).lower() in ("true", "1", "yes")
     return cast_type(value)
 
+
+def _get_gcloud_project():
+    """Try to get the project ID from gcloud config."""
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["gcloud", "config", "get-value", "project"],
+            capture_output=True, text=True, check=True
+        )
+        project = result.stdout.strip()
+        if project and "unset" not in project:
+            return project
+    except Exception:
+        pass
+    return "your-gcp-project-id"
 
 AGENT_CONFIG = {
     "name": "GKE Self-Healing Agent",
@@ -44,12 +60,12 @@ AGENT_CONFIG = {
     "dashboard_port": _get_env("DASHBOARD_PORT", 8080, int),
 
     # GCP Settings
-    "gcp_project": _get_env("GCP_PROJECT", "your-gcp-project-id"),
-    "gke_cluster": _get_env("GKE_CLUSTER", "Cloud-aittt2026"),
+    "gcp_project": _get_env("GCP_PROJECT", _get_gcloud_project()),
+    "gke_cluster": _get_env("GKE_CLUSTER", "cloud-aittt2026"),
     "region": _get_env("GCP_REGION", "us-central1"),
 
     # Monitoring Scope
-    "namespaces": _get_env("WATCH_NAMESPACES", "Cloud-aittt2026").split(","),
+    "namespaces": _get_env("WATCH_NAMESPACES", "cloud-aittt2026").split(","),
 
     # Alert Thresholds
     "alert_thresholds": {
