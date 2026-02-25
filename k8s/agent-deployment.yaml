@@ -1,0 +1,144 @@
+##
+## Kubernetes manifests for deploying the Self-Healing Agent IN the cluster
+## Usage: kubectl apply -f k8s/
+##
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: self-healing-agent
+  labels:
+    app.kubernetes.io/name: self-healing-agent
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: self-healing-agent
+  namespace: self-healing-agent
+  labels:
+    app.kubernetes.io/name: self-healing-agent
+
+---
+## ClusterRole — the agent needs read access across namespaces plus
+## write access to deployments and pods for healing actions.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: self-healing-agent
+  labels:
+    app.kubernetes.io/name: self-healing-agent
+rules:
+  # Read pods, events, logs
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "events", "namespaces"]
+    verbs: ["get", "list", "watch"]
+  # Heal: delete pods, patch deployments
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "deployments/scale", "replicasets"]
+    verbs: ["get", "list", "patch", "update"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: self-healing-agent
+  labels:
+    app.kubernetes.io/name: self-healing-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: self-healing-agent
+subjects:
+  - kind: ServiceAccount
+    name: self-healing-agent
+    namespace: self-healing-agent
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-config
+  namespace: self-healing-agent
+data:
+  ## Edit these values for your environment
+  GCP_PROJECT: "your-gcp-project-id"
+  GCP_REGION: "us-central1"
+  GKE_CLUSTER: "demo-gke-cluster"
+  WATCH_NAMESPACES: "demo-app"
+  CHECK_INTERVAL: "30"
+  LOG_LEVEL: "INFO"
+  DRY_RUN: "false"
+  DASHBOARD_ENABLED: "true"
+  DASHBOARD_PORT: "8080"
+  AGENT_MODEL: "gemini-2.0-flash"
+  VERTEX_AI_LOCATION: "us-central1"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: self-healing-agent
+  namespace: self-healing-agent
+  labels:
+    app.kubernetes.io/name: self-healing-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: self-healing-agent
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: self-healing-agent
+    spec:
+      serviceAccountName: self-healing-agent
+      containers:
+        - name: agent
+          image: gcr.io/YOUR_PROJECT/self-healing-agent:latest   # <-- update after docker build
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: dashboard
+          envFrom:
+            - configMapRef:
+                name: agent-config
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: self-healing-agent
+  namespace: self-healing-agent
+  labels:
+    app.kubernetes.io/name: self-healing-agent
+spec:
+  selector:
+    app.kubernetes.io/name: self-healing-agent
+  ports:
+    - port: 80
+      targetPort: 8080
+      name: dashboard
+  type: LoadBalancer

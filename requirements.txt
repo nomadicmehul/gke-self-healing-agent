@@ -1,0 +1,18 @@
+# Google Cloud Dependencies
+google-cloud-monitoring>=2.21.0
+google-cloud-logging>=3.10.0
+google-auth>=2.29.0
+
+# Google GenAI SDK (Vertex AI + Gemini)
+google-genai>=1.0.0
+
+# Kubernetes Client
+kubernetes>=29.0.0
+
+# Web Dashboard
+flask>=3.0.0
+
+# Utilities
+requests>=2.31.0
+python-dateutil>=2.9.0
+colorama>=0.4.6

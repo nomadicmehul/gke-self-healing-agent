@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: Cloud-aittt2026
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memory-leak-app
+  namespace: Cloud-aittt2026
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: memory-leak
+  template:
+    metadata:
+      labels:
+        app: memory-leak
+    spec:
+      containers:
+        - name: app
+          image: nginx:latest
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi" # Intentionally low for demo
+              cpu: "200m"
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: memory-leak-svc
+  namespace: Cloud-aittt2026
+spec:
+  selector:
+    app: memory-leak
+  ports:
+    - port: 80
+      targetPort: 80
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crashloop-app
+  namespace: Cloud-aittt2026
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: crashloop
+  template:
+    metadata:
+      labels:
+        app: crashloop
+    spec:
+      containers:
+        - name: app
+          image: busybox
+          command: ["sh", "-c", "echo Starting... && sleep 30 && exit 1"]
+          # This will crash every 30 seconds - perfect for demo
