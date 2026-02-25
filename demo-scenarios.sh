@@ -51,12 +51,12 @@ scenario_oom() {
     echo "  and increase the deployment's resource limits."
     echo ""
 
-    cat <<'YAML' | kubectl apply -f -
+    cat <<EOF | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: oom-demo
-  namespace: demo-app
+  namespace: $NAMESPACE
 spec:
   replicas: 1
   selector:
@@ -77,7 +77,7 @@ spec:
               memory: "64Mi"
             limits:
               memory: "100Mi"   # Will be OOMKilled
-YAML
+EOF
 
     echo -e "${GREEN}  Deployed oom-demo — it will be OOMKilled shortly${NC}"
     wait_and_watch 60 "agent should detect OOMKilled and increase limits"
@@ -91,12 +91,12 @@ scenario_crashloop() {
     echo "  detect the high restart count and delete the pod."
     echo ""
 
-    cat <<'YAML' | kubectl apply -f -
+    cat <<EOF | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: crashloop-demo
-  namespace: demo-app
+  namespace: $NAMESPACE
 spec:
   replicas: 1
   selector:
@@ -111,7 +111,7 @@ spec:
         - name: crasher
           image: busybox
           command: ["sh", "-c", "echo 'Starting...' && sleep 5 && echo 'Crashing!' && exit 1"]
-YAML
+EOF
 
     echo -e "${GREEN}  Deployed crashloop-demo — will enter CrashLoopBackOff${NC}"
     wait_and_watch 120 "agent should detect crash loop and delete pod"
@@ -124,12 +124,12 @@ scenario_stress() {
     echo "  Useful for seeing how the agent monitors resource usage."
     echo ""
 
-    kubectl apply -f stress-test.yaml 2>/dev/null || cat <<'YAML' | kubectl apply -f -
+    kubectl apply -f stress-test.yaml 2>/dev/null || cat <<EOF | kubectl apply -f -
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: memory-stress
-  namespace: demo-app
+  namespace: $NAMESPACE
 spec:
   template:
     spec:
@@ -144,7 +144,7 @@ spec:
           command: ["stress"]
           args: ["--vm", "1", "--vm-bytes", "400M", "--vm-hang", "0"]
       restartPolicy: Never
-YAML
+EOF
 
     echo -e "${GREEN}  Deployed memory-stress job${NC}"
     wait_and_watch 60 "agent monitors resource usage"
@@ -153,11 +153,20 @@ YAML
 # ─────────────────────────────────────────────────────────────────────────────
 scenario_reset() {
     print_header "Resetting Demo Namespace"
-    echo "  Deleting and recreating the demo-app namespace..."
+    echo "  Deleting and recreating the $NAMESPACE namespace..."
+    # Ensure we don't delete incorrect namespace if variable is wrong
+    if [ -z "$NAMESPACE" ]; then
+        echo "NAMESPACE variable not set, aborting reset."
+        return 1
+    fi
     kubectl delete namespace "$NAMESPACE" --ignore-not-found=true 2>/dev/null || true
     echo "  Waiting for namespace deletion..."
     sleep 10
-    kubectl apply -f demo-app.yaml
+    # Recreate namespace and apply if file exists
+    kubectl create namespace "$NAMESPACE" 2>/dev/null || true
+    if [ -f demo-app.yaml ]; then
+        kubectl apply -f demo-app.yaml
+    fi
     echo ""
     echo -e "${GREEN}  Demo namespace reset. Pods:${NC}"
     sleep 5
@@ -204,6 +213,11 @@ interactive_menu() {
 # ─────────────────────────────────────────────────────────────────────────────
 # Ensure namespace exists
 kubectl get namespace "$NAMESPACE" &>/dev/null || kubectl create namespace "$NAMESPACE"
+
+# Only apply demo-app.yaml if it exists and we're not just running a specific scenario that creates its own resources
+if [ -f demo-app.yaml ] && [ -z "${1:-}" ]; then
+    kubectl apply -f demo-app.yaml
+fi
 
 case "${1:-}" in
     oom)       scenario_oom ;;
