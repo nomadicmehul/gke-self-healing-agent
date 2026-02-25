@@ -139,6 +139,10 @@ print_info "Setting GCP project..."
 gcloud config set project "$PROJECT_ID"
 print_success "Project set to $PROJECT_ID"
 
+print_info "Adding 'environment=testing' label to project..."
+gcloud projects add-labels "$PROJECT_ID" --labels=environment=testing || print_warning "Could not add label. Usage might be restricted."
+print_success "Project labeled as 'testing'"
+
 print_info "Enabling required GCP APIs (this may take 2-3 minutes)..."
 gcloud services enable \
     container.googleapis.com \
@@ -157,30 +161,33 @@ print_success "All required APIs enabled"
 # ============================================================================
 print_step "3" "Creating GKE Cluster"
 
-# Check if cluster already exists
-if gcloud container clusters describe "$CLUSTER_NAME" --region="$REGION" &>/dev/null; then
-    print_warning "Cluster $CLUSTER_NAME already exists in $REGION"
-    read -p "Do you want to use the existing cluster? (y/n): " USE_EXISTING
-    if [[ $USE_EXISTING =~ ^[Yy]$ ]]; then
-        print_info "Using existing cluster"
-    else
-        print_error "Please delete the existing cluster or choose a different name"
-        exit 1
-    fi
+# Use a specific zone to save IP quota (Zonal cluster = 1/3 IP usage of Regional)
+ZONE="${REGION}-b"
+
+# Check if cluster already exists (Zonal check first)
+if gcloud container clusters describe "$CLUSTER_NAME" --zone="$ZONE" &>/dev/null; then
+    print_warning "Cluster $CLUSTER_NAME (Zonal) already exists in $ZONE"
+    print_info "Using existing cluster"
+elif gcloud container clusters describe "$CLUSTER_NAME" --region="$REGION" &>/dev/null; then
+    print_warning "Cluster $CLUSTER_NAME (Regional) already exists in $REGION"
+    print_warning "Regional clusters use 3x IP quota. If you hit quota limits, delete this cluster and re-run."
+    print_info "Using existing cluster"
+    # Set ZONE to empty so we don't use it in get-credentials later for regional
+    ZONE="" 
 else
-    print_info "Creating GKE cluster (this will take 5-10 minutes)..."
-    print_warning "☕ Perfect time for a coffee break!"
+    print_info "Creating ZONAL GKE cluster in $ZONE to save IP quota..."
+    print_warning "☕ Perfect time for a coffee break! (5-8 mins)"
     
     gcloud container clusters create "$CLUSTER_NAME" \
-        --region="$REGION" \
-        --num-nodes=2 \
-        --machine-type=e2-medium \
+        --zone="$ZONE" \
+        --num-nodes=1 \
+        --machine-type=e2-standard-2 \
         --logging=SYSTEM,WORKLOAD \
         --monitoring=SYSTEM \
         --enable-autoscaling \
         --min-nodes=1 \
-        --max-nodes=4 \
-        --disk-size=20 \
+        --max-nodes=3 \
+        --disk-size=30 \
         --quiet
     
     print_success "GKE cluster created successfully"
@@ -188,7 +195,11 @@ fi
 
 # Get cluster credentials
 print_info "Getting cluster credentials..."
-gcloud container clusters get-credentials "$CLUSTER_NAME" --region="$REGION"
+if [ -n "$ZONE" ]; then
+    gcloud container clusters get-credentials "$CLUSTER_NAME" --zone="$ZONE"
+else
+    gcloud container clusters get-credentials "$CLUSTER_NAME" --region="$REGION"
+fi
 print_success "Credentials configured"
 
 # Verify cluster access

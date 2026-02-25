@@ -103,13 +103,23 @@ export GCP_PROJECT="your-project-id"
 export GCP_REGION="us-central1"
 export GKE_CLUSTER="cloud-aittt2026"
 
-# 2. Create cluster
-gcloud container clusters create $GKE_CLUSTER \
-  --region=$GCP_REGION --num-nodes=2 --machine-type=e2-medium \
-  --logging=SYSTEM,WORKLOAD --monitoring=SYSTEM \
-  --enable-autoscaling --min-nodes=1 --max-nodes=4
+# Add project label if required by organization policy
+gcloud projects add-labels $GCP_PROJECT --labels=environment=testing
 
-gcloud container clusters get-credentials $GKE_CLUSTER --region=$GCP_REGION
+# 2. Create cluster (Cost-optimized zonal cluster)
+# Use a single zone to minimize IP usage (1-2 nodes instead of 3-6)
+export ZONE="${GCP_REGION}-b" 
+
+gcloud container clusters create $GKE_CLUSTER \
+  --zone=$ZONE \
+  --num-nodes=1 \
+  --machine-type=e2-standard-2 \
+  --logging=SYSTEM,WORKLOAD --monitoring=SYSTEM \
+  --enable-autoscaling --min-nodes=1 --max-nodes=3
+
+# Get credentials
+gcloud container clusters get-credentials $GKE_CLUSTER --zone=$ZONE
+
 
 # 3. Deploy demo apps
 kubectl apply -f demo-app.yaml
