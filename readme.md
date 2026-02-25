@@ -197,7 +197,7 @@ All settings can be configured via **environment variables** or by editing `agen
 | `LOG_LEVEL` | `INFO` | Python log level |
 | `DASHBOARD_ENABLED` | `true` | Enable web dashboard |
 | `DASHBOARD_PORT` | `8080` | Dashboard port |
-| `AGENT_MODEL` | `gemini-2.0-flash` | Vertex AI model name |
+| `AGENT_MODEL` | `gemini-2.0-flash-001` | Vertex AI model name |
 | `MAX_ACTIONS_PER_HOUR` | `20` | Rate limit on healing actions |
 | `COOLDOWN_SECONDS` | `60` | Per-resource cooldown between actions |
 

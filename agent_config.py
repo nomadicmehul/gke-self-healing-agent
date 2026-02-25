@@ -38,7 +38,7 @@ AGENT_CONFIG = {
     "version": "2.0.0",
 
     # AI Model Configuration
-    "model": _get_env("AGENT_MODEL", "gemini-2.0-flash"),
+    "model": _get_env("AGENT_MODEL", "gemini-2.0-flash-001"),
     "vertex_ai_location": _get_env("VERTEX_AI_LOCATION", "us-central1"),
 
     # Capabilities

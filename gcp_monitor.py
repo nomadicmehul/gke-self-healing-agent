@@ -15,7 +15,7 @@ logger = logging.getLogger("self-healing-agent.monitor")
 
 class GCPMonitor:
     def __init__(self, project_id, cluster_name, vertex_ai_location="us-central1",
-                 model_name="gemini-2.0-flash"):
+                 model_name="gemini-2.0-flash-001"):
         self.project_id = project_id
         self.cluster_name = cluster_name
         self.vertex_ai_location = vertex_ai_location
